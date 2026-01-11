@@ -22,7 +22,7 @@ app.use(helmet());
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.FRONTEND_ORIGIN || 'http://localhost:8080',
+    origin: process.env.FRONTEND_ORIGIN || 'https://dfm-ncd.pages.dev',
     credentials: true,
     optionsSuccessStatus: 200
 };
