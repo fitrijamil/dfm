@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DFI • Officer Dashboard</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sb-logo"></div>
+      <button class="sb-btn active" title="RPP Cases"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-10.5Z"></path></svg></span></button>
+      <button class="sb-btn" onclick="openAddModal()" title="Add"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"></path></svg></span></button>
+      <div class="sb-spacer"></div>
+      <button class="sb-btn" onclick="Auth.logout()" title="Logout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 17l5-5-5-5M15 12H3M21 3v18"></path></svg></span></button>
+    </aside>
+    <div class="content">
+      <header class="topbar">
+        <div class="tb-left"><div class="tb-title"><b>DFI System</b><span>Officer • RPP Incoming</span></div></div>
+        <div class="search"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg></span><input id="searchInput" placeholder="Search BMID, Email..."></div>
+        <div class="tb-right">
+          <span class="pill role">OFFICER</span>
+          <span class="pill" id="whoName">-</span>
+          <button class="btn danger" onclick="Auth.logout()">Logout</button>
+        </div>
+      </header>
+      <main class="page">
+        <div class="container">
+          <div class="h1"><div><h2>RPP Incoming</h2><p>BRD FR-40/41/42 Compliant</p></div><button class="btn green" onclick="openAddModal()">+ Add RPP Case</button></div>
+          <div class="grid-cards">
+            <div class="card"><div class="k">Total</div><div class="v" id="statTotal">0</div></div>
+            <div class="card"><div class="k">Pending</div><div class="v" id="statPending">0</div></div>
+            <div class="card"><div class="k">Processed</div><div class="v" id="statProcessed">0</div></div>
+            <div class="card"><div class="k">Today</div><div class="v" id="statToday">0</div></div>
+          </div>
+          <section class="section">
+            <div class="section-h"><b>RPP Cases</b><span id="caseCount">0 records</span></div>
+            <div class="section-b" style="padding:0">
+              <table class="table"><thead><tr><th>BMID</th><th>Source</th><th>Contact</th><th>Complainant</th><th>Bank</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tblBody"></tbody></table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal" style="max-width:700px">
+      <div class="modal-header"><h3 id="modalTitle">Add RPP Case</h3><button class="modal-close" onclick="closeModal('addModal')">×</button></div>
+      <div class="modal-body">
+        <div id="dupWarn" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:12px;margin-bottom:16px;display:none;font-size:12px;color:#fbbf24"></div>
+        <form id="rppForm">
+          <input type="hidden" id="editId">
+          <div class="form-row">
+            <div><label class="form-label">BMID *</label><input id="bmid" class="inp" required></div>
+            <div><label class="form-label">Source *</label><select id="sourceType" class="inp" required><option value="">Select</option><option>Email</option><option>RPP Portal</option></select></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Date Received *</label><input id="dateReceived" type="date" class="inp" required></div>
+            <div><label class="form-label">Email/Portal Ref</label><input id="contactRef" class="inp"></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Complainant Name *</label><input id="compName" class="inp" required></div>
+            <div><label class="form-label">IC</label><input id="compIc" class="inp"></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Bank *</label><select id="bankName" class="inp" required><option value="">Select</option><option>Maybank</option><option>CIMB</option><option>Public Bank</option><option>RHB</option><option>Hong Leong</option><option>AmBank</option><option>Bank Islam</option><option>Other</option></select></div>
+            <div><label class="form-label">Amount (RM)</label><input id="amount" type="number" step="0.01" min="0" class="inp" value="0"></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">ICBS Tag</label><select id="icbsTag" class="inp"><option value="">Select</option><option value="33">33 - Loss Reported</option><option value="19">19 - No Loss</option></select></div>
+            <div><label class="form-label">Fund Result</label><select id="fundResult" class="inp"><option value="">Select</option><option>Found</option><option>None</option></select></div>
+          </div>
+          <div class="form-row">
+            <div><label class="form-label">Status</label><select id="status" class="inp"><option>Pending</option><option>Processed</option></select></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer"><button class="btn" onclick="closeModal('addModal')">Cancel</button><button class="btn green" onclick="saveCase()">Save</button></div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let cases = [], currentUser = null, isEdit = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await Auth.requireRole([CONFIG.ROLES.OFFICER, CONFIG.ROLES.SUPERADMIN])) return;
+      currentUser = Auth.getUser();
+      $('whoName').textContent = currentUser.username;
+      $('dateReceived').value = new Date().toISOString().slice(0,10);
+      await loadCases();
+      $('searchInput').addEventListener('input', Utils.debounce(render, 300));
+      $('bmid').addEventListener('blur', checkDuplicate);
+      $('sourceType').addEventListener('change', checkDuplicate);
+    });
+
+    async function loadCases() {
+      try {
+        const res = await API.get('/officer/rpp-cases');
+        cases = res.cases || [];
+        const today = new Date().toISOString().slice(0,10);
+        $('statTotal').textContent = cases.length;
+        $('statPending').textContent = cases.filter(c => c.status === 'Pending').length;
+        $('statProcessed').textContent = cases.filter(c => c.status === 'Processed').length;
+        $('statToday').textContent = cases.filter(c => c.created_at?.startsWith(today)).length;
+        render();
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+    }
+
+    function render() {
+      const q = $('searchInput').value.toLowerCase();
+      let filtered = cases;
+      if (q) filtered = cases.filter(c => (c.bmid||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q));
+      $('caseCount').textContent = `${filtered.length} records`;
+      $('tblBody').innerHTML = filtered.map(c => `<tr>
+        <td><b>${Utils.escapeHtml(c.bmid || '-')}</b></td>
+        <td><span class="tag ${c.source_type==='Email'?'blue':'purple'}">${c.source_type||'-'}</span></td>
+        <td>${Utils.escapeHtml(c.email || c.rpp_portal || '-')}</td>
+        <td>${Utils.escapeHtml(c.complainant_name || '-')}</td>
+        <td>${Utils.escapeHtml(c.bank_name || '-')}</td>
+        <td>RM ${parseFloat(c.amount||0).toLocaleString()}</td>
+        <td><span class="tag ${c.status==='Processed'?'green':''}">${c.status||'Pending'}</span></td>
+        <td><button class="btn small" onclick="editCase('${c.id}')">Edit</button></td>
+      </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:20px">No cases</td></tr>';
+    }
+
+    function openAddModal() {
+      isEdit = false;
+      $('modalTitle').textContent = 'Add RPP Case';
+      $('rppForm').reset();
+      $('editId').value = '';
+      $('dateReceived').value = new Date().toISOString().slice(0,10);
+      $('dupWarn').style.display = 'none';
+      $('addModal').classList.add('active');
+    }
+
+    function editCase(id) {
+      const c = cases.find(x => x.id === id);
+      if (!c) return;
+      isEdit = true;
+      $('modalTitle').textContent = 'Edit RPP Case';
+      $('editId').value = c.id;
+      $('bmid').value = c.bmid || '';
+      $('sourceType').value = c.source_type || '';
+      $('dateReceived').value = c.date_received?.split('T')[0] || '';
+      $('contactRef').value = c.email || c.rpp_portal || '';
+      $('compName').value = c.complainant_name || '';
+      $('compIc').value = c.complainant_ic || '';
+      $('bankName').value = c.bank_name || '';
+      $('amount').value = c.amount || 0;
+      $('icbsTag').value = c.icbs_tag || '';
+      $('fundResult').value = c.fund_result || '';
+      $('status').value = c.status || 'Pending';
+      $('dupWarn').style.display = 'none';
+      $('addModal').classList.add('active');
+    }
+
+    function checkDuplicate() {
+      const bmid = $('bmid').value.trim();
+      const src = $('sourceType').value;
+      const editId = $('editId').value;
+      if (!bmid || !src) { $('dupWarn').style.display = 'none'; return; }
+      const existing = cases.filter(c => c.bmid === bmid && c.id !== editId);
+      if (existing.length >= 2) {
+        $('dupWarn').innerHTML = '<b>⚠️ BLOCKED:</b> Max 2 entries per BMID reached.';
+        $('dupWarn').style.display = 'block';
+      } else if (existing.some(c => c.source_type === src)) {
+        $('dupWarn').innerHTML = `<b>⚠️ BLOCKED:</b> This BMID already has a "${src}" entry.`;
+        $('dupWarn').style.display = 'block';
+      } else if (existing.length === 1) {
+        $('dupWarn').innerHTML = `ℹ️ This BMID has 1 entry (${existing[0].source_type}). You can add one more.`;
+        $('dupWarn').style.display = 'block';
+        $('dupWarn').style.background = 'rgba(59,130,246,.1)';
+        $('dupWarn').style.borderColor = 'rgba(59,130,246,.3)';
+        $('dupWarn').style.color = '#93c5fd';
+      } else {
+        $('dupWarn').style.display = 'none';
+      }
+    }
+
+    async function saveCase() {
+      const bmid = $('bmid').value.trim();
+      const src = $('sourceType').value;
+      if (!bmid || !src) { Utils.showToast('BMID and Source required', 'error'); return; }
+      
+      const data = {
+        bmid,
+        source_type: src,
+        date_received: $('dateReceived').value,
+        month_received: $('dateReceived').value.slice(0,7),
+        email: src === 'Email' ? $('contactRef').value.trim() : null,
+        rpp_portal: src === 'RPP Portal' ? $('contactRef').value.trim() : null,
+        complainant_name: $('compName').value.trim(),
+        complainant_ic: $('compIc').value.trim(),
+        bank_name: $('bankName').value,
+        amount: parseFloat($('amount').value) || 0,
+        icbs_tag: $('icbsTag').value ? parseInt($('icbsTag').value) : null,
+        action_taken_icbs: $('icbsTag').value === '33' ? 'Scam/Fraud - Loss Reported' : $('icbsTag').value === '19' ? 'Scam/Fraud - No Loss' : null,
+        fund_result: $('fundResult').value || null,
+        fund_pr_status: $('fundResult').value === 'None' ? 'Nil' : null,
+        fund_memo_type: $('fundResult').value === 'None' ? 'No record found' : null,
+        status: $('status').value
+      };
+
+      Utils.showLoading(isEdit ? 'Updating...' : 'Saving...');
+      try {
+        if (isEdit) await API.put(`/officer/rpp-cases/${$('editId').value}`, data);
+        else await API.post('/officer/rpp-cases', data);
+        Utils.showToast(isEdit ? 'Updated' : 'Created', 'success');
+        closeModal('addModal');
+        await loadCases();
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+      finally { Utils.hideLoading(); }
+    }
+
+    function closeModal(id) { $(id).classList.remove('active'); }
+  </script>
+</body>
+</html>

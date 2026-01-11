@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login | DFI System</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-box">
+      <div class="login-logo"></div>
+      <h1 class="login-title">DFI System</h1>
+      <p class="login-subtitle">Digital Fraud Investigation Portal</p>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="username" class="inp" placeholder="Enter username" required autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="password" class="inp" placeholder="Enter password" required>
+        </div>
+        <div id="errorMsg" style="color:#ef4444;font-size:12px;margin-bottom:12px;display:none"></div>
+        <button type="submit" class="btn green" id="loginBtn">Sign In</button>
+      </form>
+      
+      <p style="text-align:center;margin-top:20px;font-size:11px;color:var(--muted2)">
+        Demo: admin / Admin@123
+      </p>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    
+    // Redirect if already logged in
+    if (Auth.isLoggedIn()) Auth.redirectToDashboard();
+    
+    $('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = $('loginBtn');
+      const errDiv = $('errorMsg');
+      
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      errDiv.style.display = 'none';
+      
+      try {
+        await Auth.login($('username').value.trim(), $('password').value);
+        Auth.redirectToDashboard();
+      } catch (err) {
+        errDiv.textContent = err.message || 'Login failed';
+        errDiv.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

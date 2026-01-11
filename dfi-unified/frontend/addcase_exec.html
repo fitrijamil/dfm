@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DFI • Add New Case</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="addcase">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sb-logo" title="DFI Portal"></div>
+      <a class="sb-btn" title="Back to Dashboard" href="dashboard_exec.html">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg></span>
+      </a>
+      <div class="sb-spacer"></div>
+      <button class="sb-btn" id="btnLogoutMini" title="Logout">
+        <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 17l5-5-5-5"></path><path d="M15 12H3"></path><path d="M21 3v18"></path></svg></span>
+      </button>
+    </aside>
+
+    <div class="content">
+      <header class="topbar">
+        <div class="tb-left">
+          <div class="tb-title"><b>Digital Fraud Investigation</b><span>EXEC Workspace • Add New Case</span></div>
+        </div>
+        <div class="tb-right">
+          <span class="pill role" id="whoRole">EXEC</span>
+          <span class="pill" id="whoName">-</span>
+          <button class="btn danger" id="btnLogout">Logout</button>
+        </div>
+      </header>
+
+      <main class="page">
+        <div class="container">
+          <div class="h1">
+            <div><h2>Add New Case</h2><p class="muted">Paste CMSYS row → autofill Case ID, IC, Name, Classification</p></div>
+            <a class="btn" href="dashboard_exec.html">Back</a>
+          </div>
+
+          <!-- CMSYS Paste -->
+          <section class="section">
+            <div class="section-h"><b>Paste from CMSYS</b><span>Format: CaseID, IC, Name, Classification</span></div>
+            <div class="section-b">
+              <textarea id="cmsysPaste" class="inp" style="min-height:96px" placeholder="CMSYS-2026-00021    7510xxxxxxx    ALYA MAISARAH    Complaint"></textarea>
+              <div id="pasteMsg" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
+            </div>
+          </section>
+
+          <!-- Form -->
+          <section class="section">
+            <div class="section-h"><b>Case Details</b><span>Fields marked * are required</span></div>
+            <div class="section-b">
+              <form id="caseForm">
+                <div class="form-row">
+                  <div><label class="form-label">Case ID *</label><input id="caseId" class="inp" required></div>
+                  <div><label class="form-label">IC Number *</label><input id="icNumber" class="inp" required></div>
+                </div>
+                <div class="form-row">
+                  <div style="grid-column:span 2"><label class="form-label">Customer Name *</label><input id="custName" class="inp" required></div>
+                </div>
+                <div class="form-row">
+                  <div><label class="form-label">Classification</label>
+                    <select id="classification" class="inp"><option value="">-- Select --</option><option>Complaint</option><option>Request</option><option>Dispute</option></select>
+                  </div>
+                  <div><label class="form-label">Date Escalated *</label><input id="dateEsc" type="date" class="inp" required></div>
+                </div>
+                <div class="form-row">
+                  <div><label class="form-label">Type Case *</label>
+                    <select id="typeCase" class="inp" required><option value="">-- Select Type --</option><option>Fraud</option><option>Scam</option><option>Non-Fraud</option></select>
+                  </div>
+                  <div><label class="form-label">Category MO</label>
+                    <select id="categoryMO" class="inp" disabled><option value="">-- Select MO --</option></select>
+                    <div class="muted" style="margin-top:4px;font-size:11px">MO appears after Type selected</div>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div><label class="form-label">Branch Code</label><input id="branchCode" class="inp" placeholder="e.g. 001"></div>
+                  <div><label class="form-label">Branch Name</label><input id="branchName" class="inp" readonly placeholder="Auto-lookup"></div>
+                </div>
+                <div class="form-row">
+                  <div><label class="form-label">Total Amount (RM)</label><input id="amount" type="number" step="0.01" min="0" value="0" class="inp"></div>
+                  <div><label class="form-label">Status</label>
+                    <select id="status" class="inp"><option>Work In Progress</option><option>Closed</option></select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div style="grid-column:span 2"><label class="form-label">Remarks</label><textarea id="remarks" class="inp"></textarea></div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:16px">
+                  <button type="submit" class="btn green">Submit Case</button>
+                  <button type="reset" class="btn">Reset</button>
+                  <span id="formMsg" style="font-size:12px;color:var(--muted)"></span>
+                </div>
+              </form>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let currentUser = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await Auth.requireRole([CONFIG.ROLES.EXEC, CONFIG.ROLES.SUPERADMIN])) return;
+      currentUser = Auth.getUser();
+      $('whoName').textContent = currentUser.username;
+      $('whoRole').textContent = currentUser.role.toUpperCase();
+      $('dateEsc').value = new Date().toISOString().slice(0, 10);
+      
+      setupListeners();
+    });
+
+    function setupListeners() {
+      $('btnLogout').onclick = () => Auth.logout();
+      $('btnLogoutMini').onclick = () => Auth.logout();
+
+      // Type -> MO dropdown
+      $('typeCase').addEventListener('change', () => {
+        const type = $('typeCase').value;
+        const moSel = $('categoryMO');
+        moSel.innerHTML = '<option value="">-- Select MO --</option>';
+        const list = CONFIG.MO_BY_TYPE[type] || [];
+        moSel.disabled = !list.length;
+        list.forEach(x => { const o = document.createElement('option'); o.value = x; o.textContent = x; moSel.appendChild(o); });
+      });
+
+      // CMSYS paste
+      $('cmsysPaste').addEventListener('blur', () => {
+        const raw = $('cmsysPaste').value.trim();
+        if (!raw) return;
+        const parts = raw.includes('\t') ? raw.split('\t') : raw.includes(',') ? raw.split(',') : raw.split(/\s{2,}/);
+        const p = parts.map(x => x.trim()).filter(Boolean);
+        if (p.length < 4) {
+          $('pasteMsg').textContent = 'Format error. Need: CaseID, IC, Name, Classification';
+          $('pasteMsg').style.color = '#ef4444';
+          return;
+        }
+        $('caseId').value = p[0];
+        $('icNumber').value = p[1];
+        $('custName').value = p.slice(2, -1).join(' ');
+        $('classification').value = p.at(-1);
+        $('pasteMsg').textContent = '✅ Auto-filled from CMSYS';
+        $('pasteMsg').style.color = '#22c55e';
+      });
+
+      // Branch lookup
+      $('branchCode').addEventListener('blur', async () => {
+        const code = $('branchCode').value.trim();
+        if (!code) return;
+        try {
+          const res = await API.get(`/branches/${code}`);
+          $('branchName').value = res.branch?.branch_name || '';
+        } catch { $('branchName').value = 'Not found'; }
+      });
+
+      // Form submit
+      $('caseForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('formMsg').textContent = 'Submitting...';
+        $('formMsg').style.color = 'var(--muted)';
+
+        const payload = {
+          case_id: $('caseId').value.trim(),
+          ic_number: $('icNumber').value.trim(),
+          customer_name: $('custName').value.trim(),
+          classification: $('classification').value || 'Complaint',
+          date_escalated: $('dateEsc').value,
+          type_case: $('typeCase').value,
+          mo: $('categoryMO').value || null,
+          branch_code: $('branchCode').value.trim(),
+          branch_name: $('branchName').value,
+          amount_involved: parseFloat($('amount').value) || 0,
+          status: $('status').value === 'Closed' ? 'Closed' : 'WIP',
+          remarks: $('remarks').value,
+          pic: currentUser.id
+        };
+
+        try {
+          await API.post('/exec/cases', payload);
+          $('formMsg').textContent = '✅ Case saved! Redirecting...';
+          $('formMsg').style.color = '#22c55e';
+          setTimeout(() => location.href = 'dashboard_exec.html', 800);
+        } catch (err) {
+          $('formMsg').textContent = err.message || 'Failed to save';
+          $('formMsg').style.color = '#ef4444';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

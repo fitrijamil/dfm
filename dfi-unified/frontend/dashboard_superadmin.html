@@ -1,0 +1,48 @@
+    });
+
+    async function loadUsers() {
+      try {
+        const res = await API.get('/admin/users');
+        users = res.users || [];
+        $('statTotal').textContent = users.length;
+        $('statActive').textContent = users.filter(u => u.is_active).length;
+        $('statInactive').textContent = users.filter(u => !u.is_active).length;
+        $('statAdmins').textContent = users.filter(u => u.role === 'superadmin').length;
+        $('userCount').textContent = `${users.length} users`;
+        renderTable();
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+    }
+
+    function renderTable() {
+      $('tblBody').innerHTML = users.map(u => `<tr>
+        <td><b>${Utils.escapeHtml(u.username)}</b></td>
+        <td><span class="tag ${u.role === 'superadmin' ? 'red' : u.role === 'senior' ? 'purple' : u.role === 'exec' ? 'blue' : 'green'}">${u.role}</span></td>
+        <td><span class="tag ${u.is_active ? 'green' : ''}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td>${Utils.formatDate(u.created_at)}</td>
+        <td><button class="btn small" onclick="toggleUser('${u.id}',${!u.is_active})">${u.is_active ? 'Disable' : 'Enable'}</button></td>
+      </tr>`).join('');
+    }
+
+    function openCreateModal() { $('newUsername').value = ''; $('newPassword').value = ''; $('createModal').classList.add('active'); }
+    function closeModal(id) { $(id).classList.remove('active'); }
+
+    async function createUser() {
+      const username = $('newUsername').value.trim();
+      const password = $('newPassword').value;
+      const role = $('newRole').value;
+      if (!username || !password) { Utils.showToast('Fill all fields', 'error'); return; }
+      try {
+        await API.post('/admin/users', { username, password, role, is_active: true });
+        Utils.showToast('User created', 'success');
+        closeModal('createModal');
+        await loadUsers();
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+    }
+
+    async function toggleUser(id, active) {
+      try { await API.patch(`/admin/users/${id}`, { is_active: active }); Utils.showToast('Updated', 'success'); await loadUsers(); }
+      catch (e) { Utils.showToast(e.message, 'error'); }
+    }
+  </script>
+</body>
+</html>

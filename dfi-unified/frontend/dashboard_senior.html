@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>DFI • Senior Dashboard</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sb-logo"></div>
+      <button class="sb-btn active" title="Dashboard"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-10.5Z"></path></svg></span></button>
+      <button class="sb-btn" onclick="showTab('approvals')" title="Approvals"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></span></button>
+      <div class="sb-spacer"></div>
+      <button class="sb-btn" onclick="Auth.logout()" title="Logout"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 17l5-5-5-5M15 12H3M21 3v18"></path></svg></span></button>
+    </aside>
+    <div class="content">
+      <header class="topbar">
+        <div class="tb-left"><div class="tb-title"><b>DFI System</b><span>Senior Dashboard • Approvals</span></div></div>
+        <div class="tb-right">
+          <span class="pill role">SENIOR</span>
+          <span class="pill" id="whoName">-</span>
+          <button class="btn danger" onclick="Auth.logout()">Logout</button>
+        </div>
+      </header>
+      <main class="page">
+        <div class="container">
+          <div class="h1"><div><h2 id="pageTitle">Statistics</h2><p id="pageDesc">System overview</p></div></div>
+
+          <div id="statsTab">
+            <div class="grid-cards">
+              <div class="card"><div class="k">EXEC Cases</div><div class="v" id="statExec">0</div></div>
+              <div class="card"><div class="k">RPP Cases</div><div class="v" id="statRpp">0</div></div>
+              <div class="card"><div class="k">Pending Close</div><div class="v" id="statPending">0</div></div>
+              <div class="card"><div class="k">TAT Breach</div><div class="v" id="statBreach">0</div></div>
+            </div>
+            <section class="section">
+              <div class="section-h"><b>Classification Breakdown</b></div>
+              <div class="section-b" id="classBreakdown"></div>
+            </section>
+          </div>
+
+          <div id="approvalsTab" style="display:none">
+            <section class="section">
+              <div class="section-h"><b>Pending Close Requests</b><span id="reqCount">0 requests</span></div>
+              <div class="section-b" style="padding:0">
+                <table class="table"><thead><tr><th>Case ID</th><th>Customer</th><th>Requested By</th><th>Date</th><th>Actions</th></tr></thead><tbody id="reqBody"></tbody></table>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="approveModal">
+    <div class="modal">
+      <div class="modal-header"><h3>Review Close Request</h3><button class="modal-close" onclick="closeModal('approveModal')">×</button></div>
+      <div class="modal-body">
+        <p>Case: <strong id="approveCaseId"></strong></p>
+        <div class="form-group" style="margin-top:16px"><label class="form-label">Senior Remark * (MANDATORY)</label><textarea id="seniorRemark" class="inp" rows="3" required></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('approveModal')">Cancel</button>
+        <button class="btn danger" onclick="processRequest('rejected')">Reject</button>
+        <button class="btn green" onclick="processRequest('approved')">Approve</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let stats = {}, requests = [], currentReqId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!await Auth.requireRole([CONFIG.ROLES.SENIOR, CONFIG.ROLES.SUPERADMIN])) return;
+      $('whoName').textContent = Auth.getUser().username;
+      await loadData();
+    });
+
+    async function loadData() {
+      try {
+        const [statsRes, reqRes] = await Promise.all([API.get('/senior/statistics'), API.get('/senior/close-requests')]);
+        stats = statsRes.statistics || {};
+        requests = (reqRes.requests || []).filter(r => r.status === 'Pending');
+        
+        $('statExec').textContent = stats.totalExecCases || 0;
+        $('statRpp').textContent = stats.totalRppCases || 0;
+        $('statPending').textContent = stats.pendingCloseRequests || 0;
+        $('statBreach').textContent = stats.tatBreach || 0;
+        
+        const cls = stats.classification || {};
+        $('classBreakdown').innerHTML = `<div style="display:grid;gap:8px">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span class="tag green">Fraud</span><b>${cls.Fraud || 0}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span class="tag blue">Scam</span><b>${cls.Scam || 0}</b></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0"><span class="tag">Non-Fraud</span><b>${cls['Non-Fraud'] || 0}</b></div>
+        </div>`;
+        
+        $('reqCount').textContent = `${requests.length} requests`;
+        $('reqBody').innerHTML = requests.map(r => `<tr>
+          <td><b>${Utils.escapeHtml(r.case_id_ref)}</b></td>
+          <td>${Utils.escapeHtml(r.customer_name || '-')}</td>
+          <td>${Utils.escapeHtml(r.requested_by_name || '-')}</td>
+          <td>${Utils.formatDate(r.created_at)}</td>
+          <td><button class="btn small green" onclick="openApproveModal('${r.id}','${Utils.escapeHtml(r.case_id_ref)}')">Review</button></td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px">No pending requests</td></tr>';
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+    }
+
+    function showTab(tab) {
+      $('statsTab').style.display = tab === 'stats' ? 'block' : 'none';
+      $('approvalsTab').style.display = tab === 'approvals' ? 'block' : 'none';
+      $('pageTitle').textContent = tab === 'approvals' ? 'Close Request Approvals' : 'Statistics';
+      $('pageDesc').textContent = tab === 'approvals' ? 'Review and approve close requests' : 'System overview';
+    }
+
+    function openApproveModal(id, caseId) {
+      currentReqId = id;
+      $('approveCaseId').textContent = caseId;
+      $('seniorRemark').value = '';
+      $('approveModal').classList.add('active');
+    }
+
+    function closeModal(id) { $(id).classList.remove('active'); }
+
+    async function processRequest(status) {
+      const remark = $('seniorRemark').value.trim();
+      if (!remark) { Utils.showToast('Remark is MANDATORY', 'error'); return; }
+      Utils.showLoading(status === 'approved' ? 'Approving...' : 'Rejecting...');
+      try {
+        await API.patch(`/senior/close-requests/${currentReqId}`, { status, senior_remark: remark });
+        Utils.showToast(`Request ${status}`, 'success');
+        closeModal('approveModal');
+        await loadData();
+      } catch (e) { Utils.showToast(e.message, 'error'); }
+      finally { Utils.hideLoading(); }
+    }
+  </script>
+</body>
+</html>
