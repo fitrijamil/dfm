@@ -1,6 +1,5 @@
-/login                 /login.html                 200
-/dashboard_superadmin  /dashboard_superadmin.html  200
-/dashboard_senior      /dashboard_senior.html      200
-/dashboard_exec        /dashboard_exec.html        200
-/dashboard_officer     /dashboard_officer.html     200
-/                      /index.html                 200
+/login                 /login.html                 3000
+/dashboard_superadmin  /dashboard_superadmin.html  3000
+/dashboard_senior      /dashboard_senior.html      3000
+/dashboard_exec        /dashboard_exec.html        3000
+/dashboard_officer     /dashboard_officer.html     3000
